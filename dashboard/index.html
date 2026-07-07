@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Newsletter Pipeline — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c25;
+    --surface2:  #1e2333;
+    --border:    #2a3047;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --accent:    #6ee7b7;
+    --accent2:   #7dd3fc;
+    --accent3:   #fbbf24;
+    --danger:    #f87171;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Sora', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 24px 64px;
+  }
+
+  /* ---- Header ---- */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .header h1 span { color: var(--accent); }
+  .header-right {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .header-right a {
+    font-size: 12px;
+    color: var(--accent2);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .header-right a:hover { text-decoration: underline; }
+  .header .meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ---- Stat cards ---- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #3d4f6b; }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+  }
+  .card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    font-family: var(--mono);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ---- Section titles ---- */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ---- Layout grid ---- */
+  .row {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .row-2  { grid-template-columns: 1fr 1fr; }
+  .row-3  { grid-template-columns: 2fr 1fr 1fr; }
+  .row-32 { grid-template-columns: 3fr 2fr; }
+  @media (max-width: 900px) {
+    .row-2, .row-3, .row-32 { grid-template-columns: 1fr; }
+  }
+
+  /* ---- Panels ---- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  /* ---- Tables ---- */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 8px;
+    border-bottom: 1px solid #1e2636;
+    font-size: 12.5px;
+    color: #cbd5e1;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1a2035; }
+  td.num { text-align: right; }
+  td.mono { font-family: var(--mono); }
+
+  /* ---- Chart ---- */
+  .chart-wrap {
+    position: relative;
+    height: 160px;
+  }
+
+  /* ---- Tag cloud ---- */
+  .tag-cloud {
+    line-height: 2.2;
+  }
+  .tag-chip {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin: 2px 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: default;
+  }
+  .tag-chip:hover {
+    background: #252e45;
+    border-color: var(--accent2);
+  }
+  .tag-chip sup {
+    color: var(--muted);
+    font-size: 9px;
+    margin-left: 2px;
+  }
+
+  /* ---- Account cards ---- */
+  .acct-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .acct-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 130px;
+    flex: 1;
+  }
+  .acct-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+  .acct-stat {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    font-family: var(--mono);
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+  }
+  .acct-stat span {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--muted);
+    display: block;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* ---- Account tags in table ---- */
+  .acct-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+    background: var(--surface2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
+  }
+
+  /* ---- Cache bar ---- */
+  .cache-bar-wrap {
+    margin-top: 12px;
+  }
+  .cache-bar-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .cache-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .cache-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* ---- Scrollable tables ---- */
+  .scroll-table { overflow-x: auto; }
+
+  /* ---- Empty state ---- */
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 32px 0;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ======== HEADER ======== -->
+<div class="header">
+  <h1>Newsletter Pipeline <span>Dashboard</span></h1>
+  <div class="header-right">
+    <a href="progress.html">⚡ Live Progress</a>
+    <a href="link_review.html">🔍 Link Review</a>
+    <a href="research_queue.html">🔬 Research Queue <span style="background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:9999px;font-size:10px;font-weight:600">6</span></a>
+    <div class="meta">Generated 07 Jul 2026 at 21:37 UTC</div>
+  </div>
+</div>
+
+<!-- ======== STAT CARDS ======== -->
+<div class="cards">
+  <div class="card" style="--card-accent: var(--accent)">
+    <div class="card-label">Notes Written</div>
+    <div class="card-value">41</div>
+    <div class="card-sub">all time</div>
+  </div>
+  <div class="card" style="--card-accent: var(--accent3)">
+    <div class="card-label">Total Cost</div>
+    <div class="card-value" style="font-size:22px">$0.1233</div>
+    <div class="card-sub">all time USD</div>
+  </div>
+  <div class="card" style="--card-accent: var(--accent2)">
+    <div class="card-label">Topics Indexed</div>
+    <div class="card-value">0</div>
+    <div class="card-sub">unique tags</div>
+  </div>
+  <div class="card" style="--card-accent: #a78bfa">
+    <div class="card-label">Images Saved</div>
+    <div class="card-value">73</div>
+    <div class="card-sub">all time</div>
+  </div>
+  <div class="card" style="--card-accent: #fb923c">
+    <div class="card-label">Skipped</div>
+    <div class="card-value" style="color:#fbbf24">3</div>
+    <div class="card-sub">marketing emails</div>
+  </div>
+  <div class="card" style="--card-accent: var(--danger)">
+    <div class="card-label">Failed</div>
+    <div class="card-value" style="color:var(--danger)">1</div>
+    <div class="card-sub">will retry</div>
+  </div>
+  <div class="card" style="--card-accent: var(--accent)">
+    <div class="card-label">Cache Hit Rate</div>
+    <div class="card-value" style="font-size:22px">24.4%</div>
+    <div class="card-sub">input tokens served from cache</div>
+  </div>
+  <div class="card" style="--card-accent: var(--muted)">
+    <div class="card-label">Last Run</div>
+    <div class="card-value" style="font-size:14px;letter-spacing:0;line-height:1.5">08 Jul 2026 07:30</div>
+    <div class="card-sub">&nbsp;</div>
+  </div>
+  <div class="card" style="--card-accent:#d97706">
+    <div class="card-label">Research Queue</div>
+    <div class="card-value">6</div>
+    <div class="card-sub">pending · <a href="research_queue.html"
+         style="color:var(--accent2);text-decoration:none">review →</a></div>
+  </div>
+</div>
+
+<!-- ======== ROW: CHART + ACCOUNTS + CLASSIFICATION ======== -->
+<div class="row row-3">
+
+  <!-- Daily cost chart -->
+  <div class="panel">
+    <div class="section-title">Daily Cost — Last 30 Days</div>
+    <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+  </div>
+
+  <!-- Account breakdown -->
+  <div class="panel">
+    <div class="section-title">By Account</div>
+    <div class="acct-cards">
+        <div class="acct-card">
+          <div class="acct-name">work</div>
+          <div class="acct-stat">19 <span>notes</span></div>
+          <div class="acct-stat">$0.0610 <span>spent</span></div>
+          <div class="acct-stat">30 <span>images</span></div>
+        </div>
+        <div class="acct-card">
+          <div class="acct-name">personal</div>
+          <div class="acct-stat">22 <span>notes</span></div>
+          <div class="acct-stat">$0.0602 <span>spent</span></div>
+          <div class="acct-stat">34 <span>images</span></div>
+        </div></div>
+  </div>
+
+  <!-- Classification -->
+  <div class="panel">
+    <div class="section-title">Classification</div>
+    <div class="scroll-table"><table><thead><tr><th>Result</th><th>Stage</th><th style="text-align:right">Count</th></tr></thead><tbody><tr><td>editorial</td><td style="color:#9ca3af;font-size:12px">heuristic</td><td class="num">36</td></tr><tr><td>editorial</td><td style="color:#9ca3af;font-size:12px">llm</td><td class="num">6</td></tr><tr><td>marketing</td><td style="color:#9ca3af;font-size:12px">llm</td><td class="num">3</td></tr></tbody></table></div>
+
+    <!-- Cache efficiency bar -->
+    <div class="cache-bar-wrap" style="margin-top:20px">
+      <div class="section-title" style="margin-bottom:6px">Prompt Cache</div>
+      <div class="cache-bar-track">
+        <div class="cache-bar-fill" style="width:24.4%"></div>
+      </div>
+      <div class="cache-label">
+        <span>21,954 cached tokens</span>
+        <span>24.4% hit rate</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======== TAG CLOUD ======== -->
+<div class="row">
+  <div class="panel">
+    <div class="section-title">Topic Index — Top 0 Tags</div>
+    <div class="empty">No tags yet — run the pipeline first</div>
+  </div>
+</div>
+
+<!-- ======== RUN HISTORY TABLE ======== -->
+<div class="row">
+  <div class="panel">
+    <div class="section-title">Run History (last 4)</div>
+    <div class="scroll-table"><table><thead><tr><th>Started</th><th>Accounts</th><th style="text-align:right">Processed</th><th style="text-align:right">Skipped</th><th style="text-align:right">Failed</th><th style="text-align:right">Cost</th><th style="text-align:right">Images</th><th style="text-align:right">Cache</th><th>Git</th></tr></thead><tbody>
+        <tr>
+          <td>08 Jul 2026 06:30</td>
+          <td style="color:#6b7280;font-size:12px">personal, work</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#d97706">1</td>
+          <td class="num" style="color:#dc2626">0</td>
+          <td class="num mono">$0.0121</td>
+          <td class="num">5</td>
+          <td class="num">32.0%</td>
+          <td><span style="color:#16a34a;font-size:12px;font-weight:600">success</span></td>
+        </tr>
+        <tr>
+          <td>07 Jul 2026 06:30</td>
+          <td style="color:#6b7280;font-size:12px">personal, work</td>
+          <td class="num">2</td>
+          <td class="num" style="color:#d97706">1</td>
+          <td class="num" style="color:#dc2626">0</td>
+          <td class="num mono">$0.0087</td>
+          <td class="num">6</td>
+          <td class="num">32.0%</td>
+          <td><span style="color:#16a34a;font-size:12px;font-weight:600">success</span></td>
+        </tr>
+        <tr>
+          <td>06 Jul 2026 06:30</td>
+          <td style="color:#6b7280;font-size:12px">personal, work</td>
+          <td class="num">5</td>
+          <td class="num" style="color:#d97706">1</td>
+          <td class="num" style="color:#dc2626">1</td>
+          <td class="num mono">$0.0164</td>
+          <td class="num">5</td>
+          <td class="num">32.0%</td>
+          <td><span style="color:#16a34a;font-size:12px;font-weight:600">success</span></td>
+        </tr>
+        <tr>
+          <td>05 Jul 2026 06:30</td>
+          <td style="color:#6b7280;font-size:12px">personal, work</td>
+          <td class="num">4</td>
+          <td class="num" style="color:#d97706">1</td>
+          <td class="num" style="color:#dc2626">0</td>
+          <td class="num mono">$0.0139</td>
+          <td class="num">3</td>
+          <td class="num">32.0%</td>
+          <td><span style="color:#16a34a;font-size:12px;font-weight:600">success</span></td>
+        </tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ======== RECENT EMAILS TABLE ======== -->
+<div class="row">
+  <div class="panel">
+    <div class="section-title">Recent Emails (last 20)</div>
+    <div class="scroll-table"><table><thead><tr><th>Subject</th><th>Account</th><th>Processed</th><th>Status</th><th style="text-align:right">Cost</th><th style="text-align:right">Tokens (in/out/cached)</th><th style="text-align:right">Images</th><th style="text-align:right">Duration</th></tr></thead><tbody>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #1: Topic Roundup">Sample Digest #1: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>08 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0015</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,097 / 237 / 1,097</td>
+          <td class="num">1</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">4.4s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #2: Topic Roundup">Sample Digest #2: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>08 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0038</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,186 / 323 / 185</td>
+          <td class="num">0</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">4.6s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Dev News: Postgres Indexing Deep Dive">Sample Dev News: Postgres Indexing Deep Dive</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0027</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,030 / 215 / 191</td>
+          <td class="num">4</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">6.1s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Article: A Tour of Feature Flags">Sample Article: A Tour of Feature Flags</td>
+          <td><span class="acct-tag acct-links">links</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Skipped Marketing</span></td>
+          <td class="num mono">$0.0003</td>
+          <td class="num" style="color:#6b7280;font-size:12px">3,645 / 336 / 1,437</td>
+          <td class="num">4</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">4.5s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #3: Topic Roundup">Sample Digest #3: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0012</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,524 / 225 / 452</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.5s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #4: Topic Roundup">Sample Digest #4: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0015</td>
+          <td class="num" style="color:#6b7280;font-size:12px">3,194 / 549 / 370</td>
+          <td class="num">1</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.4s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #5: Topic Roundup">Sample Digest #5: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0041</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,157 / 488 / 122</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.3s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #6: Topic Roundup">Sample Digest #6: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>07 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0022</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,756 / 385 / 613</td>
+          <td class="num">1</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.5s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Briefing: Kubernetes Cost Controls">Sample Briefing: Kubernetes Cost Controls</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0035</td>
+          <td class="num" style="color:#6b7280;font-size:12px">3,313 / 342 / 13</td>
+          <td class="num">2</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">3.5s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="FLASH SALE - 50% off everything!">FLASH SALE - 50% off everything!</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Skipped Marketing</span></td>
+          <td class="num mono">$0.0004</td>
+          <td class="num" style="color:#6b7280;font-size:12px">3,888 / 435 / 1,098</td>
+          <td class="num">4</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">7.6s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #7: Topic Roundup">Sample Digest #7: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0024</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,306 / 573 / 919</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.2s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #8: Topic Roundup">Sample Digest #8: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0058</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,902 / 415 / 80</td>
+          <td class="num">2</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">2.9s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #9: Topic Roundup">Sample Digest #9: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0052</td>
+          <td class="num" style="color:#6b7280;font-size:12px">3,275 / 433 / 140</td>
+          <td class="num">0</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.6s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #10: Topic Roundup">Sample Digest #10: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>06 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0054</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,725 / 345 / 790</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.9s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Weekly #42: Scaling Vector Databases">Sample Weekly #42: Scaling Vector Databases</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>05 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0031</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,002 / 579 / 563</td>
+          <td class="num">4</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">6.5s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #11: Topic Roundup">Sample Digest #11: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>05 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0016</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,793 / 593 / 588</td>
+          <td class="num">3</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">5.0s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #12: Topic Roundup">Sample Digest #12: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>05 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0054</td>
+          <td class="num" style="color:#6b7280;font-size:12px">2,545 / 481 / 569</td>
+          <td class="num">2</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">3.0s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Briefing: Observability on a Budget">Sample Briefing: Observability on a Budget</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>04 Jul 2026 07:30</td>
+          <td><span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Failed</span></td>
+          <td class="num mono">$0.0011</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,853 / 643 / 206</td>
+          <td class="num">1</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">8.9s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #13: Topic Roundup">Sample Digest #13: Topic Roundup</td>
+          <td><span class="acct-tag acct-work">work</span></td>
+          <td>04 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0018</td>
+          <td class="num" style="color:#6b7280;font-size:12px">1,518 / 242 / 360</td>
+          <td class="num">0</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">7.7s</td>
+        </tr>
+        <tr>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="Sample Digest #14: Topic Roundup">Sample Digest #14: Topic Roundup</td>
+          <td><span class="acct-tag acct-personal">personal</span></td>
+          <td>04 Jul 2026 07:30</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:0.3px">Success</span></td>
+          <td class="num mono">$0.0037</td>
+          <td class="num" style="color:#6b7280;font-size:12px">916 / 274 / 858</td>
+          <td class="num">2</td>
+          <td class="num" style="color:#9ca3af;font-size:12px">3.6s</td>
+        </tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ======== LINK PIPELINE SECTION ======== -->
+<div class="row" style="margin-top:12px">
+  <div class="panel">
+    <div class="section-title">Link Pipeline — Fetch Overview</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:20px">
+      <div class="acct-card">
+        <div class="acct-name" style="color:var(--accent3)">Total URLs</div>
+        <div class="acct-stat">11 <span>attempted</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#16a34a">Fetched</div>
+        <div class="acct-stat">4 <span>45.5% usable</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#2563eb">Partial</div>
+        <div class="acct-stat">1 <span>preview only</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#dc2626">Blocked</div>
+        <div class="acct-stat">1 <span>bot protection</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#d97706">Paywalled</div>
+        <div class="acct-stat">1 <span>too thin to keep</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#7c3aed">JS Required</div>
+        <div class="acct-stat">1 <span>needs review</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:var(--muted)">Failed</div>
+        <div class="acct-stat">1 <span>will retry</span></div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:13px;margin-top:4px">Fallback Usage — Last 30 Days (11 URLs)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+      <div class="acct-card">
+        <div class="acct-name" style="color:#7c3aed">Playwright fallback</div>
+        <div class="acct-stat">18.2% <span>2 of 11 links</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#ea580c">RSS fallback</div>
+        <div class="acct-stat">18.2% <span>2 of 11 links</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:var(--muted)">Any fallback</div>
+        <div class="acct-stat">36.4% <span>needed recovery</span></div>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- ======== LINK FETCH LOG TABLE ======== -->
+<div class="row">
+  <div class="panel">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+      Link Fetch Log (last 11)
+      <a href="link_review.html"
+         style="font-size:12px;font-weight:400;color:var(--accent2);text-decoration:none">
+        View full review page →</a>
+    </div>
+    <div class="scroll-table"><table><thead><tr><th>Title / URL</th><th>Domain</th><th>Status</th><th style="text-align:right">HTTP</th><th style="text-align:right">Words</th><th>Attempted</th><th>Detail</th></tr></thead><tbody>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://blog.example.com/vector-databases-explained"><a href="https://blog.example.com/vector-databases-explained" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Vector Databases Explained</a></td>
+          <td style="color:#6b7280;font-size:12px">blog.example.com</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Fetched</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">2,140</td>
+          <td style="color:#6b7280;font-size:12px">08 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://app.example.net/spa-only-article"><a href="https://app.example.net/spa-only-article" style="color:var(--accent2);text-decoration:none"
+              target="_blank">sample-reading-list</a></td>
+          <td style="color:#6b7280;font-size:12px">app.example.net</td>
+          <td><span style="background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">JS Required</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">0</td>
+          <td style="color:#6b7280;font-size:12px">08 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap">Empty body after Playwright render</td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://engineering.example.org/rate-limiting-guide"><a href="https://engineering.example.org/rate-limiting-guide" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: A Practical Rate Limiting Guide</a></td>
+          <td style="color:#6b7280;font-size:12px">engineering.example.org</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Fetched</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">3,320</td>
+          <td style="color:#6b7280;font-size:12px">07 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://cdn.example.com/blocked-endpoint"><a href="https://cdn.example.com/blocked-endpoint" style="color:var(--accent2);text-decoration:none"
+              target="_blank">sample-reading-list</a></td>
+          <td style="color:#6b7280;font-size:12px">cdn.example.com</td>
+          <td><span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Blocked</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">403</td>
+          <td class="num">0</td>
+          <td style="color:#6b7280;font-size:12px">07 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap">HTTP 403 Forbidden</td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://sample.substack.example.com/p/feature-flags"><a href="https://sample.substack.example.com/p/feature-flags" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Feature Flags Done Right</a></td>
+          <td style="color:#6b7280;font-size:12px">sample.substack.example.com</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Fetched</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">1,870</td>
+          <td style="color:#6b7280;font-size:12px">06 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://old.example.org/deleted-post"><a href="https://old.example.org/deleted-post" style="color:var(--accent2);text-decoration:none"
+              target="_blank">sample-reading-list</a></td>
+          <td style="color:#6b7280;font-size:12px">old.example.org</td>
+          <td><span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Failed</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">404</td>
+          <td class="num">0</td>
+          <td style="color:#6b7280;font-size:12px">06 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap">HTTP 404 Not Found</td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://devblog.example.net/wasm-production-notes"><a href="https://devblog.example.net/wasm-production-notes" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: WebAssembly Production Notes</a></td>
+          <td style="color:#6b7280;font-size:12px">devblog.example.net</td>
+          <td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Fetched</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">2,660</td>
+          <td style="color:#6b7280;font-size:12px">05 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://member.example.com/hands-on-postgres"><a href="https://member.example.com/hands-on-postgres" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Hands-On Postgres Tuning</a></td>
+          <td style="color:#6b7280;font-size:12px">member.example.com</td>
+          <td><span style="background:#f9fafb;color:#374151;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Manual</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">—</td>
+          <td class="num">2,980</td>
+          <td style="color:#6b7280;font-size:12px">05 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://blog.example.com/observability-basics"><a href="https://blog.example.com/observability-basics" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Observability Basics</a></td>
+          <td style="color:#6b7280;font-size:12px">blog.example.com</td>
+          <td><span style="background:#dbeafe;color:#2563eb;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Partial</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">200</td>
+          <td class="num">240</td>
+          <td style="color:#6b7280;font-size:12px">04 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap">Body shorter than threshold</td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://member.example.com/careers-in-data"><a href="https://member.example.com/careers-in-data" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Careers in Data Engineering</a></td>
+          <td style="color:#6b7280;font-size:12px">member.example.com</td>
+          <td><span style="background:#f9fafb;color:#374151;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Manual</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">—</td>
+          <td class="num">1,540</td>
+          <td style="color:#6b7280;font-size:12px">04 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap"></td>
+        </tr>
+        <tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="https://news.example.org/premium/scaling-story"><a href="https://news.example.org/premium/scaling-story" style="color:var(--accent2);text-decoration:none"
+              target="_blank">Sample: Premium Scaling Story</a></td>
+          <td style="color:#6b7280;font-size:12px">news.example.org</td>
+          <td><span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600">Paywalled</span></td>
+          <td class="num" style="color:#6b7280;font-size:12px">402</td>
+          <td class="num">0</td>
+          <td style="color:#6b7280;font-size:12px">03 Jul 2026 08:30</td>
+          <td style="color:#9ca3af;font-size:11px;max-width:200px;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap">Paywall marker detected</td>
+        </tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ======== RESEARCH QUEUE SUMMARY ======== -->
+<div class="row" style="margin-top:12px">
+  <div class="panel">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+      Research Queue
+      <a href="research_queue.html"
+         style="font-size:12px;font-weight:400;color:var(--accent2);text-decoration:none">
+        Open queue →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
+      <div class="acct-card">
+        <div class="acct-name" style="color:#d97706">Pending</div>
+        <div class="acct-stat">6 <span>topics</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:#16a34a">Researched</div>
+        <div class="acct-stat">2 <span>topics</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:var(--muted)">Skipped</div>
+        <div class="acct-stat">1 <span>topics</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-name" style="color:var(--accent3)">Queue Cost</div>
+        <div class="acct-stat">$0.0870 <span>all time</span></div>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- ======== CHART INIT ======== -->
+<script>
+(function() {
+  const labels = ["2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08"];
+  const costs  = [0.00845, 0.01143, 0.01063, 0.00814, 0.01092, 0.00588, 0.0108, 0.00543, 0.01017, 0.02239, 0.01179, 0.00523];
+  const emails = [3, 4, 3, 3, 4, 2, 5, 2, 3, 5, 5, 2];
+
+  if (!labels.length) return;
+
+  const ctx = document.getElementById('costChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Cost (USD)',
+          data: costs,
+          backgroundColor: 'rgba(110, 231, 183, 0.25)',
+          borderColor: 'rgba(110, 231, 183, 0.85)',
+          borderWidth: 1.5,
+          borderRadius: 3,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Emails',
+          data: emails,
+          type: 'line',
+          borderColor: 'rgba(125, 211, 252, 0.7)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 3,
+          pointBackgroundColor: '#7dd3fc',
+          tension: 0.3,
+          yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: '#64748b',
+            font: { size: 11 },
+            boxWidth: 12,
+          },
+        },
+        tooltip: {
+          backgroundColor: '#1e2333',
+          borderColor: '#2a3047',
+          borderWidth: 1,
+          titleColor: '#e2e8f0',
+          bodyColor: '#94a3b8',
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Cost (USD)'
+              ? ` ${ctx.parsed.y.toFixed(5)}`
+              : ` ${ctx.parsed.y} emails`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#475569', font: { size: 10 }, maxRotation: 45 },
+          grid:  { color: '#1e2636' },
+        },
+        y: {
+          position: 'left',
+          ticks: {
+            color: '#64748b',
+            font: { size: 10 },
+            callback: v => '$' + v.toFixed(4),
+          },
+          grid: { color: '#1e2636' },
+        },
+        y2: {
+          position: 'right',
+          ticks: { color: '#475569', font: { size: 10 } },
+          grid:  { display: false },
+        },
+      },
+    },
+  });
+})();
+</script>
+
+</body>
+</html>

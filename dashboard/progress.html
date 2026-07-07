@@ -1,0 +1,592 @@
+<!--
+dashboard/progress.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c25;
+    --surface2:  #1e2333;
+    --border:    #2a3047;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --accent:    #6ee7b7;
+    --accent2:   #7dd3fc;
+    --accent3:   #fbbf24;
+    --danger:    #f87171;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Sora', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 24px 64px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ---- Header ---- */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .header h1 span { color: var(--accent); }
+  .header .meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-align: right;
+  }
+  .header .meta a {
+    color: var(--accent2);
+    text-decoration: none;
+  }
+
+  /* ---- Live indicator ---- */
+  .live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 6px;
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  .live-dot.offline {
+    background: var(--danger);
+    animation: none;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* ---- Status badge ---- */
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .status-running   { background: #1e3a3a; color: var(--accent); }
+  .status-complete  { background: #1e3a2a; color: #4ade80; }
+  .status-error     { background: #3a1e1e; color: var(--danger); }
+  .status-idle      { background: var(--surface2); color: var(--muted); }
+
+  .pulse-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+  }
+
+  /* ---- Progress bar ---- */
+  .progress-wrap { margin-bottom: 28px; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .progress-label strong { color: #fff; }
+  .progress-track {
+    height: 10px;
+    background: var(--surface2);
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 5px;
+    transition: width 0.4s ease;
+  }
+
+  /* ---- Current item card ---- */
+  .current-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .current-card .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .current-subject {
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .current-account {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .current-step {
+    display: flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    transition: background 0.2s;
+  }
+  .step-icon {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--accent);
+    border-top-color: transparent;
+    border-radius: 50%;
+    margin-right: 10px;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- Stat cards ---- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 12px;
+  }
+  .card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .card-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    font-family: var(--mono);
+    letter-spacing: -0.5px;
+    transition: color 0.2s;
+  }
+
+  /* ---- Section title ---- */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ---- Recent items table ---- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 8px;
+    border-bottom: 1px solid #1e2636;
+    font-size: 12.5px;
+    color: #cbd5e1;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-family: var(--mono); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-success  { background: #dcfce7; color: #16a34a; }
+  .badge-failed   { background: #fee2e2; color: #dc2626; }
+  .badge-skipped  { background: #fef3c7; color: #d97706; }
+  .badge-dry      { background: #f3f4f6; color: #6b7280; }
+
+  .fallback-tag {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  /* ---- Empty / idle state ---- */
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 64px 0;
+  }
+  .empty .big {
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+  }
+  .empty code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  /* ---- Complete banner ---- */
+  .complete-banner {
+    background: #1e3a2a;
+    border: 1px solid #2d5a3a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .complete-banner .msg {
+    color: #4ade80;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .complete-banner a {
+    color: var(--accent2);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px solid #2d5a3a;
+    padding: 6px 14px;
+    border-radius: 6px;
+  }
+  .complete-banner a:hover { border-color: var(--accent2); }
+
+  .error-banner {
+    background: #3a1e1e;
+    border: 1px solid #5a2d2d;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    color: var(--danger);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* ---- Flash animation when a value updates ---- */
+  .flash {
+    animation: flash-bg 0.6s ease;
+  }
+  @keyframes flash-bg {
+    0%   { background: rgba(110, 231, 183, 0.15); }
+    100% { background: transparent; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Pipeline <span>Progress</span></h1>
+  <div class="meta" id="meta-info">
+    <span class="live-dot" id="live-dot"></span><span id="live-label">Connecting...</span>
+    &middot; <a href="index.html">Full dashboard →</a>
+  </div>
+</div>
+
+<div id="content">
+  <div class="empty">
+    <div class="big">Loading...</div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Polling loop
+//
+// Served over HTTP (via serve_dashboard.py), so fetch() of progress.json
+// works without the CORS restrictions that apply to file:// URLs.
+// Polls every POLL_INTERVAL_MS and re-renders only the parts of the page
+// that changed, avoiding the full-page flash of a meta-refresh approach.
+// ---------------------------------------------------------------------------
+(function () {
+  var POLL_INTERVAL_MS = 1500;
+  var contentEl  = document.getElementById('content');
+  var liveDotEl  = document.getElementById('live-dot');
+  var liveLabel  = document.getElementById('live-label');
+  var lastState  = null;   // previous PROGRESS for change-detection flashes
+
+  function poll() {
+    fetch('progress.json', { cache: 'no-store' })
+      .then(function (resp) {
+        if (resp.status === 404) {
+          // No run has happened yet — idle state, server is reachable
+          setLive(true);
+          renderIdle();
+          return null;
+        }
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        if (data) {
+          setLive(true);
+          render(data);
+        }
+      })
+      .catch(function () {
+        // Server unreachable (stopped) — keep showing last known state
+        // but flag the connection as offline.
+        setLive(false);
+      });
+  }
+
+  function setLive(ok) {
+    if (ok) {
+      liveDotEl.classList.remove('offline');
+      liveLabel.textContent = 'Live';
+    } else {
+      liveDotEl.classList.add('offline');
+      liveLabel.textContent = 'Server unreachable';
+    }
+  }
+
+  function renderIdle() {
+    contentEl.innerHTML =
+      '<div class="empty">' +
+      '  <div class="big">No active run</div>' +
+      '  <div>Start a run with <code>python pipeline\\orchestrator.py</code> ' +
+      'or <code>python pipeline\\link_orchestrator.py</code></div>' +
+      '</div>';
+    lastState = null;
+  }
+
+  function render(p) {
+    // ---- Pipeline label ----
+    var pipelineLabel = p.pipeline === 'links' ? 'Link Pipeline' : 'Email Pipeline';
+    if (p.run_label) pipelineLabel += ' — ' + p.run_label;
+
+    // ---- Status badge ----
+    var statusHtml;
+    if (p.status === 'running') {
+      statusHtml = '<div class="status-badge status-running"><span class="pulse-dot"></span>Running — ' + pipelineLabel + '</div>';
+    } else if (p.status === 'complete') {
+      statusHtml = '<div class="status-badge status-complete">Complete — ' + pipelineLabel + '</div>';
+    } else if (p.status === 'error') {
+      statusHtml = '<div class="status-badge status-error">Error — ' + pipelineLabel + '</div>';
+    } else {
+      statusHtml = '<div class="status-badge status-idle">' + pipelineLabel + '</div>';
+    }
+
+    var html = statusHtml;
+
+    // ---- Complete / Error banners ----
+    if (p.status === 'complete') {
+      html += '<div class="complete-banner">' +
+              '  <div class="msg">✓ Run finished — ' + (p.total || 0) + ' item(s) processed</div>' +
+              '  <a href="index.html">View full dashboard</a>' +
+              '</div>';
+    } else if (p.status === 'error') {
+      html += '<div class="error-banner">' + escapeHtml(p.current_step || 'Unknown error') + '</div>';
+    }
+
+    // ---- Progress bar ----
+    var total = p.total || 0;
+    var current = Math.min(p.current_index || 0, total);
+    var pct = total > 0 ? Math.round((current / total) * 100) : (p.status === 'complete' ? 100 : 0);
+
+    if (total > 0 || p.status === 'complete') {
+      html += '<div class="progress-wrap">' +
+              '  <div class="progress-label"><span>Progress</span><strong>' + current + ' / ' + total + ' (' + pct + '%)</strong></div>' +
+              '  <div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+              '</div>';
+    }
+
+    // ---- Current item card (only while running) ----
+    if (p.status === 'running' && p.current_subject) {
+      html += '<div class="current-card">' +
+              '  <div class="label">Now Processing — item ' + current + ' of ' + total + '</div>' +
+              '  <div class="current-subject">' + escapeHtml(p.current_subject) + '</div>';
+      if (p.current_account) {
+        html += '  <div class="current-account">' + escapeHtml(p.current_account) + '</div>';
+      }
+      var stepChanged = lastState && lastState.current_step !== p.current_step;
+      html += '  <div class="current-step' + (stepChanged ? ' flash' : '') + '"><span class="step-icon"></span>' + escapeHtml(p.current_step || '') + '</div>' +
+              '</div>';
+    }
+
+    // ---- Stat cards ----
+    var stats = p.stats || {};
+    html += '<div class="cards">' +
+            statCard('Processed', stats.processed || 0, 'var(--accent)') +
+            statCard('Skipped', stats.skipped_marketing || 0, '#fbbf24') +
+            statCard('Failed', stats.failed || 0, stats.failed > 0 ? 'var(--danger)' : 'var(--muted)') +
+            statCard('Images', stats.images_saved || 0, '#a78bfa') +
+            statCard('Cost', '$' + (p.running_cost || 0).toFixed(4), 'var(--accent2)') +
+            statCard('Elapsed', elapsedStr(p), '#9ca3af') +
+            '</div>';
+
+    // ---- Fallback stat cards (link pipeline only) ----
+    // stats.via_rss_fallback / via_playwright_fallback only exist on
+    // progress.json when pipeline === 'links' (see progress_writer.py
+    // start_run() / record_completed()) — the email pipeline never sets
+    // them, so this whole block is skipped for email runs rather than
+    // showing two permanently-zero cards that mean nothing there.
+    if (p.pipeline === 'links') {
+      html += '<div class="section-title" style="margin-top:4px">Fallback Usage — This Run</div>';
+      html += '<div class="cards">' +
+              statCard('Playwright fallback', stats.via_playwright_fallback || 0, '#7c3aed') +
+              statCard('RSS fallback', stats.via_rss_fallback || 0, '#ea580c') +
+              '</div>';
+    }
+
+    // ---- Recent items table ----
+    var items = p.recent_items || [];
+    html += '<div class="section-title">Recent Items</div>';
+    if (items.length === 0) {
+      html += '<div class="panel"><div class="empty" style="padding:24px 0"><div class="big">Nothing completed yet</div></div></div>';
+    } else {
+      var rows = '';
+      items.forEach(function (item) {
+        // Fallback indicator — only present on link-pipeline items (see
+        // record_completed() in progress_writer.py); undefined/false for
+        // email items, so this renders as nothing extra there.
+        var fallbackTag = '';
+        if (item.via_playwright_fallback) {
+          fallbackTag = ' <span class="fallback-tag" style="color:#7c3aed">⚡ Playwright</span>';
+        } else if (item.via_rss_fallback) {
+          fallbackTag = ' <span class="fallback-tag" style="color:#ea580c">⚡ RSS</span>';
+        }
+        rows += '<tr>' +
+                '  <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(item.subject) + fallbackTag + '</td>' +
+                '  <td>' + badge(item.status) + '</td>' +
+                '  <td class="num">$' + (item.cost || 0).toFixed(4) + '</td>' +
+                '  <td class="num">' + (item.duration || 0).toFixed(1) + 's</td>' +
+                '</tr>';
+      });
+      html += '<div class="panel"><table>' +
+              '<thead><tr><th>Item</th><th>Status</th><th style="text-align:right">Cost</th><th style="text-align:right">Duration</th></tr></thead>' +
+              '<tbody>' + rows + '</tbody></table></div>';
+    }
+
+    contentEl.innerHTML = html;
+    lastState = p;
+  }
+
+  // ---- Helpers ----
+  function elapsedStr(p) {
+    if (!p.run_started_at) return '—';
+    var start = new Date(p.run_started_at);
+    var end   = p.run_completed_at ? new Date(p.run_completed_at) : new Date();
+    var secs  = Math.max(0, Math.round((end - start) / 1000));
+    var mins  = Math.floor(secs / 60);
+    var rem   = secs % 60;
+    return mins > 0 ? (mins + 'm ' + rem + 's') : (rem + 's');
+  }
+
+  function statCard(label, value, color) {
+    return '<div class="card" style="border-top:2px solid ' + color + '">' +
+           '  <div class="card-label">' + label + '</div>' +
+           '  <div class="card-value">' + value + '</div>' +
+           '</div>';
+  }
+
+  function badge(status) {
+    var map = {
+      success:            ['badge-success', 'Success'],
+      failed:             ['badge-failed', 'Failed'],
+      skipped_marketing:  ['badge-skipped', 'Skipped'],
+      skipped_blocklist:  ['badge-skipped', 'Blocklist'],
+      dry_run:            ['badge-dry', 'Dry Run'],
+    };
+    var entry = map[status] || ['badge-dry', status];
+    return '<span class="badge ' + entry[0] + '">' + entry[1] + '</span>';
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  // Start polling immediately, then on the configured interval.
+  poll();
+  setInterval(poll, POLL_INTERVAL_MS);
+})();
+</script>
+
+</body>
+</html>

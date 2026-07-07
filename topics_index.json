@@ -1,0 +1,154 @@
+{
+  "api-design": [
+    {
+      "file": "2026-07-02-work-sample-weekly-41-rate-limiting-patterns.md",
+      "account": "work"
+    },
+    {
+      "file": "2026-07-05-links-sample-feature-flags-done-right.md",
+      "account": "links"
+    }
+  ],
+  "autoscaling": [
+    {
+      "file": "2026-07-01-work-sample-briefing-kubernetes-cost-controls.md",
+      "account": "work"
+    }
+  ],
+  "chaos-engineering": [
+    {
+      "file": "2026-07-07-links-sample-chaos-engineering-primer.md",
+      "account": "links"
+    }
+  ],
+  "cloud-spend": [
+    {
+      "file": "2026-07-01-work-sample-briefing-kubernetes-cost-controls.md",
+      "account": "work"
+    }
+  ],
+  "database-performance": [
+    {
+      "file": "2026-06-30-personal-sample-dev-news-postgres-indexing-deep-dive.md",
+      "account": "personal"
+    }
+  ],
+  "distributed-systems": [
+    {
+      "file": "2026-07-02-work-sample-weekly-41-rate-limiting-patterns.md",
+      "account": "work"
+    },
+    {
+      "file": "2026-07-06-links-sample-observability-basics.md",
+      "account": "links"
+    },
+    {
+      "file": "2026-07-07-links-sample-chaos-engineering-primer.md",
+      "account": "links"
+    }
+  ],
+  "edge-computing": [
+    {
+      "file": "2026-07-03-personal-sample-dev-news-webassembly-in-production.md",
+      "account": "personal"
+    }
+  ],
+  "embeddings": [
+    {
+      "file": "2026-06-27-personal-sample-weekly-42-scaling-vector-databases.md",
+      "account": "personal"
+    },
+    {
+      "file": "2026-07-07-work-sample-briefing-retrieval-augmented-generation.md",
+      "account": "work"
+    }
+  ],
+  "feature-flags": [
+    {
+      "file": "2026-07-05-links-sample-feature-flags-done-right.md",
+      "account": "links"
+    }
+  ],
+  "kubernetes-cost-optimisation": [
+    {
+      "file": "2026-07-01-work-sample-briefing-kubernetes-cost-controls.md",
+      "account": "work"
+    }
+  ],
+  "observability": [
+    {
+      "file": "2026-07-06-links-sample-observability-basics.md",
+      "account": "links"
+    }
+  ],
+  "postgres-indexing": [
+    {
+      "file": "2026-06-30-personal-sample-dev-news-postgres-indexing-deep-dive.md",
+      "account": "personal"
+    }
+  ],
+  "progressive-delivery": [
+    {
+      "file": "2026-07-05-links-sample-feature-flags-done-right.md",
+      "account": "links"
+    }
+  ],
+  "query-optimisation": [
+    {
+      "file": "2026-06-30-personal-sample-dev-news-postgres-indexing-deep-dive.md",
+      "account": "personal"
+    }
+  ],
+  "rag-pipelines": [
+    {
+      "file": "2026-07-07-work-sample-briefing-retrieval-augmented-generation.md",
+      "account": "work"
+    }
+  ],
+  "rate-limiting": [
+    {
+      "file": "2026-07-02-work-sample-weekly-41-rate-limiting-patterns.md",
+      "account": "work"
+    }
+  ],
+  "resilience-testing": [
+    {
+      "file": "2026-07-07-links-sample-chaos-engineering-primer.md",
+      "account": "links"
+    }
+  ],
+  "runtime-performance": [
+    {
+      "file": "2026-07-03-personal-sample-dev-news-webassembly-in-production.md",
+      "account": "personal"
+    }
+  ],
+  "semantic-search": [
+    {
+      "file": "2026-06-27-personal-sample-weekly-42-scaling-vector-databases.md",
+      "account": "personal"
+    }
+  ],
+  "structured-logging": [
+    {
+      "file": "2026-07-06-links-sample-observability-basics.md",
+      "account": "links"
+    }
+  ],
+  "vector-databases": [
+    {
+      "file": "2026-06-27-personal-sample-weekly-42-scaling-vector-databases.md",
+      "account": "personal"
+    },
+    {
+      "file": "2026-07-07-work-sample-briefing-retrieval-augmented-generation.md",
+      "account": "work"
+    }
+  ],
+  "webassembly": [
+    {
+      "file": "2026-07-03-personal-sample-dev-news-webassembly-in-production.md",
+      "account": "personal"
+    }
+  ]
+}

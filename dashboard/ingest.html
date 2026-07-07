@@ -1,0 +1,451 @@
+<!--
+dashboard/ingest.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manual Ingest — Newsletter Pipeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --accent:  #6ee7b7;
+      --accent2: #7dd3fc;
+      --cyan:    #22d3ee;
+      --mono:    'DM Mono', monospace;
+      --sans:    'Sora', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); font-size: 14px;
+      line-height: 1.6; padding: 32px 24px 80px;
+      max-width: 860px; margin: 0 auto;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px; margin-bottom: 32px;
+    }
+    .header h1 { font-size: 22px; font-weight: 600; color: #fff; }
+    .header h1 span { color: var(--cyan); }
+    .nav-link {
+      display: inline-block; margin-bottom: 28px;
+      color: var(--accent2); font-size: 12px; text-decoration: none;
+    }
+    .nav-link:hover { text-decoration: underline; }
+
+    /* ---- Sections ---- */
+    h2 {
+      font-size: 14px; font-weight: 600; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 12px; margin-top: 36px;
+    }
+    h2:first-of-type { margin-top: 0; }
+
+    p { color: var(--muted); margin-bottom: 10px; font-size: 13px; }
+
+    /* ---- Bookmarklet card ---- */
+    .bm-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 24px; margin-bottom: 28px;
+    }
+    .bm-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    #bm-link {
+      display: inline-block; padding: 9px 18px;
+      background: var(--cyan); color: #0f172a;
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      border-radius: 7px; text-decoration: none; cursor: grab;
+      user-select: none; white-space: nowrap;
+    }
+    #bm-link:active { cursor: grabbing; }
+    .bm-hint { font-size: 12px; color: var(--muted); }
+    .bm-hint strong { color: var(--text); }
+
+    .steps {
+      list-style: none; counter-reset: steps;
+      margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px;
+    }
+    .steps li {
+      counter-increment: steps;
+      display: flex; gap: 12px; align-items: baseline;
+      font-size: 13px; color: var(--muted);
+    }
+    .steps li::before {
+      content: counter(steps);
+      min-width: 22px; height: 22px;
+      background: var(--border); color: var(--text);
+      border-radius: 50%; font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .steps li strong { color: var(--text); }
+
+    /* ---- Paste form ---- */
+    .form-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 24px; margin-bottom: 20px;
+    }
+    .field { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .05em; margin-bottom: 6px;
+    }
+    label .req { color: var(--accent); margin-left: 2px; }
+    input[type=text], textarea {
+      width: 100%; background: #0f172a; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text);
+      font-family: var(--mono); font-size: 13px;
+      padding: 9px 12px; outline: none;
+      transition: border-color .15s;
+    }
+    input[type=text]:focus, textarea:focus { border-color: var(--accent2); }
+    textarea { resize: vertical; min-height: 200px; line-height: 1.5; }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; }
+
+    .word-count { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ---- Buttons ---- */
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      padding: 9px 20px; border-radius: 7px; border: none;
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #0f172a; }
+    .btn-run     { background: var(--accent2); color: #0f172a; }
+    .btn-clear   { background: transparent; color: var(--muted);
+                   border: 1px solid var(--border); font-size: 12px; }
+
+    /* ---- Status bar ---- */
+    #status-bar {
+      padding: 10px 16px; border-radius: 8px; margin-top: 16px;
+      font-size: 13px; display: none;
+    }
+    #status-bar.ok    { background: #14532d; border: 1px solid #16a34a; color: #86efac; }
+    #status-bar.error { background: #450a0a; border: 1px solid #dc2626; color: #fca5a5; }
+    #status-bar.info  { background: #1e3a5f; border: 1px solid #2563eb; color: #93c5fd; }
+
+    /* ---- Queue log ---- */
+    #queue-log {
+      margin-top: 24px; display: none;
+    }
+    .log-entry {
+      display: flex; gap: 10px; align-items: baseline;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-ts { color: var(--muted); font-family: var(--mono); white-space: nowrap; }
+    .log-url { color: var(--accent2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-words { color: var(--muted); white-space: nowrap; }
+
+    /* ---- Port config ---- */
+    .port-row {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 20px;
+    }
+    .port-row label { margin: 0; text-transform: none; font-size: 12px; }
+    .port-row input { width: 80px; padding: 5px 8px; }
+    .port-status { font-size: 11px; }
+    .port-status.ok    { color: #86efac; }
+    .port-status.error { color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Manual <span>Ingest</span></h1>
+</div>
+
+<a href="index.html" class="nav-link">← Back to Dashboard</a>
+
+<!-- ---- Server connection ---- -->
+<h2>Server Connection</h2>
+<p>serve_dashboard.py must be running for this page to work. Check the port matches the one you started it on.</p>
+<div class="port-row">
+  <label for="port-input">Port:</label>
+  <input type="text" id="port-input" value="8420" oninput="updateBookmarklet()">
+  <span class="port-status" id="port-status"></span>
+</div>
+
+<!-- ---- Bookmarklet ---- -->
+<h2>Bookmarklet</h2>
+<div class="bm-card">
+  <p style="margin-bottom:14px">
+    Drag the button below to your bookmarks bar. On any article page, click it to
+    send the page text directly to your pipeline queue — no copy-paste needed.
+  </p>
+  <div class="bm-row">
+    <a id="bm-link" href="#" title="Drag me to your bookmarks bar">📋 Send to Pipeline</a>
+    <span class="bm-hint">← <strong>Drag this</strong> to your bookmarks bar</span>
+  </div>
+  <ol class="steps" style="margin-top:18px">
+    <li>Drag the button above to your browser's bookmarks bar</li>
+    <li>Navigate to any <strong>blocked / paywalled / js_required</strong> article</li>
+    <li>Select the article text you want to save (or select nothing to grab everything)</li>
+    <li>Click <strong>Send to Pipeline</strong> in your bookmarks bar</li>
+    <li>A small popup confirms the content was queued — then close it</li>
+    <li>Run <code>python main.py links</code> to process the queue</li>
+  </ol>
+</div>
+
+<!-- ---- Manual paste form ---- -->
+<h2>Paste Manually</h2>
+<p>Alternatively, paste article content directly here without using the bookmarklet.</p>
+
+<div class="form-panel">
+  <div class="field">
+    <label for="f-url">URL <span class="req">*</span></label>
+    <input type="text" id="f-url" placeholder="https://example.com/article">
+  </div>
+  <div class="field">
+    <label for="f-body">Article Text <span class="req">*</span></label>
+    <textarea id="f-body" placeholder="Paste the full article text here…" oninput="updateWordCount()"></textarea>
+    <div class="word-count" id="word-count">0 words</div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="f-title">Title <span style="color:var(--muted)">(optional)</span></label>
+      <input type="text" id="f-title" placeholder="Article title">
+    </div>
+    <div class="field">
+      <label for="f-label">Label / Tag <span style="color:var(--muted)">(optional)</span></label>
+      <input type="text" id="f-label" placeholder="e.g. ai agents">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="queueArticle()">Queue Article</button>
+    <button class="btn btn-run" onclick="queueAndRun()">Queue &amp; Run Pipeline</button>
+    <button class="btn btn-clear" onclick="clearForm()">Clear</button>
+  </div>
+
+  <div id="status-bar"></div>
+</div>
+
+<!-- ---- Queue log ---- -->
+<div id="queue-log">
+  <h2 style="margin-top:0">Queued This Session</h2>
+  <div id="log-entries"></div>
+</div>
+
+<script>
+  // ---- Port + server URL ----
+  var port = 8420;
+
+  function serverUrl() {
+    return 'http://127.0.0.1:' + port;
+  }
+
+  function updatePort() {
+    var v = parseInt(document.getElementById('port-input').value);
+    if (!isNaN(v) && v > 0) port = v;
+    updateBookmarklet();
+    pingServer();
+  }
+  document.getElementById('port-input').addEventListener('change', updatePort);
+
+  // ---- Bookmarklet code ----
+  // The bookmarklet:
+  //   1. Grabs window.getSelection() or document.body.innerText as body_text
+  //   2. Posts to /api/ingest with url, title, body_text
+  //   3. Shows a small inline status popup
+
+  function buildBookmarkletCode(p) {
+    // This runs on ANY external page, so it must be fully self-contained.
+    // Minified JS that fits comfortably in a bookmarklet href.
+    return (
+      'javascript:(function(){' +
+      'var port=' + p + ';' +
+      'var sel=window.getSelection?window.getSelection().toString().trim():"";' +
+      'var body=sel||document.body.innerText||"";' +
+      'if(!body){alert("No text found on this page.");return;}' +
+      'var payload={' +
+        'url:location.href,' +
+        'title:document.title,' +
+        'body_text:body,' +
+        'label:"",' +
+        'added_date:new Date().toISOString().slice(0,10)' +
+      '};' +
+      'var div=document.createElement("div");' +
+      'div.style.cssText="position:fixed;top:16px;right:16px;z-index:999999;' +
+        'background:#1e293b;color:#e2e8f0;border:1px solid #334155;' +
+        'border-radius:10px;padding:14px 18px;font-family:sans-serif;' +
+        'font-size:13px;box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:320px";' +
+      'div.textContent="⏳ Sending to pipeline…";' +
+      'document.body.appendChild(div);' +
+      'fetch("http://127.0.0.1:"+port+"/api/ingest",{' +
+        'method:"POST",' +
+        'headers:{"Content-Type":"application/json"},' +
+        'body:JSON.stringify(payload)' +
+      '}).then(function(r){return r.json();}).then(function(d){' +
+        'if(d.status==="queued"){' +
+          'var words=body.split(/\\s+/).filter(Boolean).length;' +
+          'div.innerHTML="✓ <strong>Queued</strong> ("+words.toLocaleString()+" words)<br>' +
+            '<span style=\\"color:#64748b;font-size:11px\\">Run main.py links to process</span>";' +
+          'div.style.borderColor="#16a34a";' +
+        '}else{div.textContent="✗ Error: "+(d.error||"unknown");}' +
+      '}).catch(function(e){' +
+        'div.textContent="✗ Could not reach server on port "+port+". Is serve_dashboard.py running?";' +
+        'div.style.borderColor="#dc2626";' +
+      '});' +
+      'setTimeout(function(){div.remove();},6000);' +
+      '})()'
+    );
+  }
+
+  function updateBookmarklet() {
+    var p = parseInt(document.getElementById('port-input').value) || 8420;
+    port = p;
+    var el = document.getElementById('bm-link');
+    el.href = buildBookmarkletCode(p);
+    // Prevent navigation if someone clicks instead of drags
+    el.onclick = function(e) {
+      e.preventDefault();
+      setStatus('Drag the button to your bookmarks bar — don\'t click it here.', 'info');
+    };
+  }
+
+  // ---- Ping server ----
+  function pingServer() {
+    fetch(serverUrl() + '/progress.json', {method:'GET'})
+      .then(function() {
+        document.getElementById('port-status').textContent = '✓ Connected';
+        document.getElementById('port-status').className = 'port-status ok';
+      })
+      .catch(function() {
+        document.getElementById('port-status').textContent = '✗ Not reachable';
+        document.getElementById('port-status').className = 'port-status error';
+      });
+  }
+
+  // ---- Form helpers ----
+  function updateWordCount() {
+    var text = document.getElementById('f-body').value;
+    var words = text.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('word-count').textContent = words.toLocaleString() + ' words';
+  }
+
+  function clearForm() {
+    ['f-url','f-body','f-title','f-label'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('word-count').textContent = '0 words';
+    hideStatus();
+  }
+
+  function setStatus(msg, type) {
+    var bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    bar.className = type;
+    bar.style.display = 'block';
+  }
+  function hideStatus() {
+    document.getElementById('status-bar').style.display = 'none';
+  }
+
+  function addToLog(url, wordCount) {
+    var logDiv = document.getElementById('queue-log');
+    var entries = document.getElementById('log-entries');
+    logDiv.style.display = 'block';
+    var now = new Date().toLocaleTimeString();
+    var entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = (
+      '<span class="log-ts">' + now + '</span>' +
+      '<span class="log-url" title="' + url + '">' + url.slice(0, 70) + (url.length > 70 ? '…' : '') + '</span>' +
+      '<span class="log-words">' + wordCount.toLocaleString() + ' words</span>'
+    );
+    entries.prepend(entry);
+  }
+
+  // ---- Queue article ----
+  async function queueArticle() {
+    var url      = document.getElementById('f-url').value.trim();
+    var bodyText = document.getElementById('f-body').value.trim();
+    var title    = document.getElementById('f-title').value.trim();
+    var label    = document.getElementById('f-label').value.trim();
+
+    if (!url || !url.startsWith('http')) {
+      setStatus('URL is required and must start with http.', 'error'); return;
+    }
+    if (!bodyText) {
+      setStatus('Article text is required.', 'error'); return;
+    }
+
+    var words = bodyText.split(/\s+/).filter(Boolean).length;
+
+    setStatus('⏳ Queuing…', 'info');
+
+    try {
+      var resp = await fetch(serverUrl() + '/api/ingest', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          url:        url,
+          body_text:  bodyText,
+          title:      title,
+          label:      label,
+          added_date: new Date().toISOString().slice(0, 10),
+        }),
+      });
+
+      var data = await resp.json();
+
+      if (data.status === 'queued') {
+        setStatus('✓ Queued (' + words.toLocaleString() + ' words). File: ' + data.file, 'ok');
+        addToLog(url, words);
+        return true;
+      } else {
+        setStatus('✗ Server error: ' + (data.error || 'unknown'), 'error');
+        return false;
+      }
+    } catch (err) {
+      setStatus('✗ Could not reach server — is serve_dashboard.py running on port ' + port + '?', 'error');
+      return false;
+    }
+  }
+
+  async function queueAndRun() {
+    var ok = await queueArticle();
+    if (!ok) return;
+
+    setStatus('✓ Queued. Triggering link pipeline…', 'ok');
+
+    try {
+      var resp = await fetch(serverUrl() + '/api/run_links', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{}',
+      });
+      var data = await resp.json();
+      if (data.status === 'started') {
+        setStatus('✓ Queued and pipeline started. Check progress.html for live updates.', 'ok');
+      } else {
+        setStatus('✓ Queued, but pipeline start failed: ' + (data.error || 'unknown'), 'error');
+      }
+    } catch (err) {
+      setStatus('✓ Queued, but could not trigger pipeline: ' + err.message, 'error');
+    }
+  }
+
+  // ---- Init ----
+  updateBookmarklet();
+  pingServer();
+</script>
+</body>
+</html>

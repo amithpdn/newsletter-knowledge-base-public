@@ -1,0 +1,14 @@
+.env
+secrets/
+__pycache__/
+*.pyc
+.venv/
+registry.db*
+dashboard/progress.json
+dashboard/progress.js
+pipeline/links.csv
+notes/
+*.zip
+logs/
+pipeline/manual_content/
+sync-to-public.ps1
