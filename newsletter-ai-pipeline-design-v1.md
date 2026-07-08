@@ -60,7 +60,7 @@ The pipeline is intentionally personal: it runs locally, stores data in OneDrive
 - Semantic topic linking across notes using local sentence embeddings
 - Image extraction from newsletter HTML with quality filtering
 - Article link processing from a CSV file and browser bookmarklet
-- Multi-layer fetch reliability (direct HTTP → RSS → Playwright headless browser)
+- Multi-layer fetch reliability (direct HTTP → Playwright headless browser → RSS)
 - On-demand topic research using Claude + web search, appended to notes
 - Local HTML dashboard for run statistics, cost tracking, and queue management
 - SQLite-backed deduplication, run logging, and image metadata
@@ -153,38 +153,38 @@ The pipeline is a sequential multi-agent system with two entry paths:
 ┌─────────────────────────────────────────────────────────────────┐
 │  Entry Path A: Email Pipeline                                   │
 │                                                                 │
-│  Gmail API → Agent 1 (Ingestion)                               │
-│           → Agent 1.5 (Classification)                         │
-│           → Agent 2 (Summarisation)                            │
-│           → Agent 3 (Topic Linking)                            │
-│           → Agent 4 (Image Extraction)                         │
-│           → Agent 5 (Research)                                 │
-│           → Agent 7 (Local Writer)                             │
-│           → Agent 8 (Gmail Label)                              │
-│           → Agent 6 (Logging)                                  │
+│  Gmail API → Agent 1 (Ingestion)                                │
+│            → Agent 1.5 (Classification)                         │
+│            → Agent 2 (Summarisation)                            │
+│            → Agent 3 (Topic Linking)                            │
+│            → Agent 4 (Image Extraction)                         │
+│            → Agent 5 (Research)                                 │
+│            → Agent 7 (Local Writer)                             │
+│            → Agent 8 (Gmail Label)                              │
+│            → Agent 6 (Logging)                                  │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │  Entry Path B: Link Pipeline                                    │
 │                                                                 │
-│  links.csv / manual_content/ → Link Ingestion Agent            │
-│                              → Agent 2 (Summarisation)         │
-│                              → Agent 3 (Topic Linking)         │
-│                              → Agent 4 (Image Extraction)      │
-│                              → Agent 5 (Research)              │
-│                              → Agent 7 (Local Writer)          │
-│                              → Agent 6 (Logging)               │
+│  links.csv / manual_content/ → Link Ingestion Agent             │
+│                              → Agent 2 (Summarisation)          │
+│                              → Agent 3 (Topic Linking)          │
+│                              → Agent 4 (Image Extraction)       │
+│                              → Agent 5 (Research)               │
+│                              → Agent 7 (Local Writer)           │
+│                              → Agent 6 (Logging)                │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │  Shared Infrastructure                                          │
 │                                                                 │
-│  registry.db (SQLite)   — all state and logs                   │
-│  topics_index.json      — Git-visible topic mirror             │
-│  INDEX.md               — append-only note index               │
-│  dashboard/*.html       — generated UI (no server required)    │
-│  serve_dashboard.py     — optional local HTTP server + API     │
-│  Agent 9 (Git Backup)   — scheduled, independent of pipeline   │
+│  registry.db (SQLite)   — all state and logs                    │
+│  topics_index.json      — Git-visible topic mirror              │
+│  INDEX.md               — append-only note index                │
+│  dashboard/*.html       — generated UI (no server required)     │
+│  serve_dashboard.py     — optional local HTTP server + API      │
+│  Agent 9 (Git Backup)   — scheduled, independent of pipeline    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -651,9 +651,11 @@ Records every Git backup attempt.
 
 **`INDEX.md`** — Human-readable append-only table of all processed notes:
 ```markdown
-| Date | Note | Account | Tags |
-|---|---|---|---|
+┌────────────┬──────────────────────────────────────────────┬──────────┬───────────────────────────────────┐
+│    Date    |                    Note                      |  Account |               Tags                |
+├────────────┼──────────────────────────────────────────────┼──────────┼───────────────────────────────────┤
 | 2026-06-18 | [Subject](notes/2026-06-18-personal-slug.md) | personal | rag-pipelines, agent-architecture |
+└────────────┴──────────────────────────────────────────────┴──────────┴───────────────────────────────────┘
 ```
 
 **`topics_index.json`** — JSON mirror of `topic_index` for Git visibility and Obsidian Dataview queries:
